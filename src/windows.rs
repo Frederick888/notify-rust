@@ -1,45 +1,40 @@
-use winrt_notification::Toast;
+use winrt_toast::{Image, Toast, ToastDuration, ToastManager};
 
-pub use crate::{
-    error::*,
-    notification::Notification,
-    timeout::Timeout,
-};
+pub use crate::{error::*, notification::Notification, timeout::Timeout};
 
-
-use std::{path::Path, str::FromStr};
+const POWERSHELL_APP_ID: &str = "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\
+                                             \\WindowsPowerShell\\v1.0\\powershell.exe";
 
 pub(crate) fn show_notification(notification: &Notification) -> Result<()> {
-    let sound = match &notification.sound_name {
-        Some(chosen_sound_name) => winrt_notification::Sound::from_str(chosen_sound_name).ok(),
-        None => None,
-    };
+    // let sound = match &notification.sound_name {
+    //     Some(chosen_sound_name) => winrt_notification::Sound::from_str(chosen_sound_name).ok(),
+    //     None => None,
+    // };
 
     let duration = match notification.timeout {
-        Timeout::Default => winrt_notification::Duration::Short,
-        Timeout::Never => winrt_notification::Duration::Long,
+        Timeout::Default => ToastDuration::Short,
+        Timeout::Never => ToastDuration::Long,
         Timeout::Milliseconds(t) => {
             if t >= 25000 {
-                winrt_notification::Duration::Long
+                ToastDuration::Long
             } else {
-                winrt_notification::Duration::Short
+                ToastDuration::Short
             }
         }
     };
 
-    let powershell_app_id = &Toast::POWERSHELL_APP_ID.to_string();
-    let app_id = &notification.app_id.as_ref().unwrap_or(powershell_app_id);
-    let mut toast = Toast::new(app_id)
-            .title(&notification.summary)
-            .text1(notification.subtitle.as_ref().map(AsRef::as_ref).unwrap_or("")) // subtitle
-            .text2(&notification.body)
-            .sound(sound)
-            .duration(duration);
+    let manager = ToastManager::new(POWERSHELL_APP_ID);
+    let mut toast = Toast::new();
+    toast
+        .text1(notification.subtitle.as_ref().map(AsRef::as_ref).unwrap_or(""))
+        .text2(&notification.body)
+        .duration(duration);
     if let Some(image_path) = &notification.path_to_image {
-        toast = toast.image(Path::new(&image_path), "");
+        let image = Image::new_local(&image_path).map_err(|e| Error::from(ErrorKind::Msg(format!("{:?}", e))))?;
+        toast.image(1, image);
     }
 
-    toast
-        .show()
+    manager
+        .show(&toast)
         .map_err(|e| Error::from(ErrorKind::Msg(format!("{:?}", e))))
 }

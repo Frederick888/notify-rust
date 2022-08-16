@@ -139,7 +139,7 @@
 
 #[cfg(all(feature="dbus", unix, not(target_os = "macos")))] extern crate dbus;
 #[cfg(target_os = "macos")] extern crate mac_notification_sys;
-#[cfg(target_os = "windows")] extern crate winrt_notification;
+#[cfg(target_os = "windows")] extern crate winrt_toast;
 #[macro_use] #[cfg(all(feature = "images", unix, not(target_os = "macos")))] extern crate lazy_static;
 
 pub mod error;
